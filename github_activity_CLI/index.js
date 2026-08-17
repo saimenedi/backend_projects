@@ -51,6 +51,27 @@ function fetchGitHubActivity(username) {
       });
   });
 }
+// function to format timestamp
+
+function formatTimestamp(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMind}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 // Function to format activity events
 
@@ -58,33 +79,47 @@ function formatActivity(events) {
   if (!events || events.length === 0) {
     return "No recent activity found.";
   }
+
   const formattedActivities = events.slice(0, 10).map((event) => {
     const type = event.type;
     const repo = event.repo.name;
+    const timestamp = formatTimestamp(event.created_at);
+    let description;
 
     switch (type) {
       case "PushEvent":
-        return `Pushed ${event.payload.size || event.payload.commits?.length || 1}
-                commit${event.payload.size > 1 ? "s" : ""} to ${repo}`;
+        const commitCount =
+          event.payload.commits?.length || event.payload.size || 1;
+        description = `Pushed ${commitCount} commit${commitCount > 1 ? "s" : ""} to ${repo}`;
+        break;
       case "IssuesEvent":
-        return `Opened a new issue in ${repo}`;
+        description = `Opened a new issue in ${repo}`;
+        break;
       case "PullRequestEvent":
-        return `Opened a new pull request in ${repo}`;
+        description = `Opened a new pull request in ${repo}`;
+        break;
       case "WatchEvent":
-        return `Started ${repo}`;
+        description = `Started ${repo}`;
+        break;
       case "ForkEvent":
-        return `Forked ${repo}`;
+        description = `Forked ${repo}`;
+        break;
       case "CreateEvent":
-        return `Created a new repository or branch in ${repo}`;
+        description = `Created a new repository or branch in ${repo}`;
+        break;
       case "DeleteEvent":
-        return `Deleted a repository or branch in ${repo}`;
+        description = `Deleted a repository or branch in ${repo}`;
+        break;
       case "ReleaseEvent":
-        return `Released a new version in ${repo}`;
+        description = `Released a new version in ${repo}`;
+        break;
       case "GollumEvent":
-        return `Updated wiki pages in ${repo}`;
+        description = `Updated wiki pages in ${repo}`;
+        break;
       default:
-        return `Performed ${type} in ${repo}`;
+        description = `Performed ${type} in ${repo}`;
     }
+    return `[${timestamp}] ${description}`;
   });
 
   return formattedActivities.join("\n- ");
